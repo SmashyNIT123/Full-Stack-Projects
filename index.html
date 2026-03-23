@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Manager</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      margin-top: 50px;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 350px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    input {
+      width: 70%;
+      padding: 8px;
+    }
+
+    button {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding: 8px;
+      background: #eee;
+      border-radius: 5px;
+    }
+
+    .done {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .actions button {
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Task Manager</h2>
+
+  <input id="taskInput" placeholder="Enter task..." />
+  <button onclick="addTask()">Add</button>
+
+  <div id="taskList"></div>
+</div>
+
+<script>
+const API = "http://localhost:3033/tasks";
+
+// Load tasks
+async function loadTasks() {
+  const res = await fetch(API);
+  const tasks = await res.json();
+
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  tasks.forEach(task => {
+    const div = document.createElement("div");
+    div.className = "task";
+
+    div.innerHTML = `
+      <span class="${task.completed ? 'done' : ''}" onclick="toggleTask(${task.id})">
+        ${task.text}
+      </span>
+
+      <div class="actions">
+        <button onclick="deleteTask(${task.id})">❌</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+// Add task
+async function addTask() {
+  const input = document.getElementById("taskInput");
+
+  if (!input.value) return;
+
+  await fetch(API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      text: input.value,
+      completed: false
+    })
+  });
+
+  input.value = "";
+  loadTasks();
+}
+
+// Delete task
+async function deleteTask(id) {
+  await fetch(`${API}/${id}`, {
+    method: "DELETE"
+  });
+
+  loadTasks();
+}
+
+// Toggle complete
+async function toggleTask(id) {
+  // get current task
+  const res = await fetch(`${API}/${id}`);
+  const task = await res.json();
+
+  await fetch(`${API}/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      completed: !task.completed
+    })
+  });
+
+  loadTasks();
+}
+
+// Initial load
+loadTasks();
+</script>
+
+</body>
+</html>
